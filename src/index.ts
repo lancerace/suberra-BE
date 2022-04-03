@@ -8,15 +8,36 @@ import MainController from "./controllers";
 import { createConnection } from 'typeorm';
 import { AgreementService } from "./services";
 import { Agreement } from "./entities";
-import WebSocketUtil from './utils/websocket';
+import http from 'http';
+import WebSocket from 'ws';
 var CronJob = require('cron').CronJob;
-const app = express()
-.use(json())
-.use(urlencoded({ extended: true }))
-.use(cors());
 
-//initialize the WebSocket server instance
-const wss = WebSocketUtil.create(process.env.WS_PORT);
+const app = express()
+    .use(json())
+    .use(urlencoded({ extended: true }))
+    .use(cors());
+const server = http.createServer(app)
+const wss = new WebSocket.Server({ server });
+server.listen(process.env.PORT || 4200, async () => {
+    logger.info(`Server started at PORT ${process.env.PORT} in ${process.env.NODE_ENV}`);
+    createConnection().then(async connection => {
+        logger.info(`connection synched`);
+
+        new CronJob('*/10 * * * * *', async () => {
+            //console.log("run every 10 secs");
+            const agreements: Agreement[] = await AgreementService.getAgreements();
+
+            for (var i = 0; i < agreements.length; i++) {
+                await AgreementService.automateRecurringPayment(agreements[i], agreements[i].intervalLength);
+            }
+        }, null, true, 'Asia/Singapore');
+
+    }).catch(error => logger.error(`[connection error]: ${error}`));
+});
+
+
+
+
 app.locals.wss = wss;
 app.locals.test = "Test";
 wss.on('connection', (ws) => {
@@ -26,20 +47,5 @@ wss.on('connection', (ws) => {
     });
 });
 
-app.listen(process.env.PORT || 4200, async () => {
-    logger.info(`Server started at PORT ${process.env.PORT} in ${process.env.NODE_ENV}`);
-    createConnection().then(async connection => {
-        logger.info(`connection synched`);
 
-        new CronJob('*/10 * * * * *', async () => {
-            //console.log("run every 10 secs");
-            const agreements: Agreement[] = await AgreementService.getAgreements();
-
-            for (var i = 0; i < agreements.length; i++){
-                await AgreementService.automateRecurringPayment(agreements[i], agreements[i].intervalLength);
-            }
-        }, null, true, 'Asia/Singapore');
-
-    }).catch(error => logger.error(`[connection error]: ${error}`));
-});
 app.use("/api", MainController);
