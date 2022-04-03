@@ -10,10 +10,10 @@ import { AgreementService } from "./services";
 import { Agreement } from "./entities";
 import WebSocketUtil from './utils/websocket';
 var CronJob = require('cron').CronJob;
-const app = express();
-app.use(json());
-app.use(urlencoded({ extended: true }));
-app.use(cors());
+const app = express()
+.use(json())
+.use(urlencoded({ extended: true }))
+.use(cors());
 
 //initialize the WebSocket server instance
 const wss = WebSocketUtil.create(process.env.WS_PORT);
