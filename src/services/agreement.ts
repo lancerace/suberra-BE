@@ -59,9 +59,7 @@ async function automateRecurringPayment(agreement: Agreement, intervalInSeconds:
         }
 
         wss.clients.forEach(function each(client) {
-            if (client.readyState === WebSocket.OPEN) {
                 client.send(JSON.stringify({ message: `charged id ${agreement.agreementId}` }));
-            }
         });
         return;
     }
@@ -73,9 +71,7 @@ async function automateRecurringPayment(agreement: Agreement, intervalInSeconds:
         //1. make payment
         //2. record payment done
         wss.clients.forEach(function each(client) {
-            if (client.readyState === WebSocket.OPEN) {
                 client.send(JSON.stringify({ message: `charged id ${agreement.agreementId}` }));
-            }
         });
         await updateAgreement(agreement.agreementId, { lastCharge: current });
         return;
