@@ -28,7 +28,7 @@ server.listen(process.env.PORT || 4200, async () => {
             const agreements: Agreement[] = await AgreementService.getAgreements();
 
             for (var i = 0; i < agreements.length; i++) {
-                await AgreementService.automateRecurringPayment(agreements[i], agreements[i].intervalLength);
+                await AgreementService.automateRecurringPayment(agreements[i], agreements[i].intervalLength,wss);
             }
         }, null, true, 'Asia/Singapore');
 
@@ -39,7 +39,6 @@ server.listen(process.env.PORT || 4200, async () => {
 
 
 app.locals.wss = wss;
-app.locals.test = "Test";
 wss.on('connection', (ws) => {
     //connection is up
     ws.on('message', (message: string) => {

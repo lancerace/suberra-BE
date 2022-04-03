@@ -1,6 +1,6 @@
 import { DeleteResult, getConnection, getRepository, UpdateResult } from "typeorm";
 import { Agreement } from "../entities";
-
+import WebSocket from 'ws';
 
 async function getAgreements(): Promise<Agreement[]> {
     const agreements: Agreement[] = await getRepository(Agreement).createQueryBuilder('agreement')
@@ -46,7 +46,7 @@ async function updateAgreement(agreementId: number, fields: { lastCharge: Date }
     return (updatedAgreement.affected > 0) ? true : false;
 }
 
-async function automateRecurringPayment(agreement: Agreement, intervalInSeconds: number) {
+async function automateRecurringPayment(agreement: Agreement, intervalInSeconds: number, wss: any) {
     const current = new Date();
 
     if (!agreement.paymentAmount || agreement.paymentAmount === 0 || !agreement.startTime)
@@ -57,6 +57,12 @@ async function automateRecurringPayment(agreement: Agreement, intervalInSeconds:
         if (current > agreement.startTime) {
             await updateAgreement(agreement.agreementId, { lastCharge: current });
         }
+
+        wss.clients.forEach(function each(client) {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({ message: `charged id ${agreement.agreementId}` }));
+            }
+        });
         return;
     }
 
@@ -64,10 +70,15 @@ async function automateRecurringPayment(agreement: Agreement, intervalInSeconds:
     const lastCharge: Date = agreement.lastCharge;
     lastCharge.setSeconds(lastCharge.getSeconds() + intervalInSeconds);
     if (current > lastCharge) {
-       // console.log("recurring execute");
         //1. make payment
         //2. record payment done
+        wss.clients.forEach(function each(client) {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({ message: `charged id ${agreement.agreementId}` }));
+            }
+        });
         await updateAgreement(agreement.agreementId, { lastCharge: current });
+        return;
     }
 
 }
