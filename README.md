@@ -1,4 +1,4 @@
-# suberra-backend
+# suberra-backend - Websocket example
 
 API deployed url is https://suberra-payment.herokuapp.com/
 
